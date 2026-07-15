@@ -220,3 +220,14 @@ __marimo__/
 # data 파일 제외
 data/*
 .idea
+
+# uv / Python
+.venv/
+__pycache__/
+.env
+.env.local
+*.db
+*.sqlite
+.idea/
+.vscode/
+.python-version
