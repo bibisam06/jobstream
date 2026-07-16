@@ -231,3 +231,5 @@ __pycache__/
 .idea/
 .vscode/
 .python-version
+docs/*
+.DS_Store
