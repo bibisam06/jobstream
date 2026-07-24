@@ -6,5 +6,15 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "confluent-kafka>=2.15.0",
+    "playwright>=1.54.0",
     "python-dotenv>=1.2.2",
+    "jobstream-collector",
+    "jobstream-common",
 ]
+
+[tool.uv.workspace]
+members = ["apps/collector", "packages/common"]
+
+[tool.uv.sources]
+jobstream-collector = { workspace = true }
+jobstream-common = { workspace = true }

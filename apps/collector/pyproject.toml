@@ -1,0 +1,20 @@
+[project]
+name = "jobstream-collector"
+version = "0.1.0"
+description = "Playwright based job posting collectors for JobStream"
+requires-python = ">=3.12"
+dependencies = [
+    "jobstream-common",
+    "playwright>=1.54.0",
+    "python-dotenv>=1.2.2",
+]
+
+[project.scripts]
+jobstream-collector = "collector.main:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
