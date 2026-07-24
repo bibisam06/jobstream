@@ -225,7 +225,6 @@ data/*
 __pycache__/
 .env
 .env.local
-.env.example
 *.db
 *.sqlite
 .idea/
@@ -233,3 +232,6 @@ __pycache__/
 .python-version
 .DS_Store
 docs/*
+
+jobs.jsonl
+*.jsonl

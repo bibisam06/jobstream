@@ -32,7 +32,7 @@ uv sync
 ## 로컬 인프라 실행
 
 ```bash
-cp .env.example .env   # 필요 시 값 수정
+cp  .env   # 필요 시 값 수정
 docker compose up -d   # Kafka, Kafka UI, Redis, Postgres
 ```
 

@@ -16,3 +16,19 @@ class CollectorSettings:
     navigation_timeout_ms: int = int(os.getenv("JOBSTREAM_NAVIGATION_TIMEOUT_MS", "45000"))
     scroll_pause_ms: int = int(os.getenv("JOBSTREAM_SCROLL_PAUSE_MS", "800"))
     max_retries: int = int(os.getenv("JOBSTREAM_MAX_RETRIES", "3"))
+
+# 데이터베이스 관련 config 추가
+@dataclass(frozen=True, slots=True)
+class DatabaseSettings:
+    host: str = os.getenv("POSTGRES_HOST", "localhost")
+    port: int = int(os.getenv("POSTGRES_PORT", "5433"))
+    user: str = os.getenv("POSTGRES_USER", "jobstream")
+    password: str = os.getenv("POSTGRES_PASSWORD", "jobstream-dev")
+    dbname: str = os.getenv("POSTGRES_DB", "jobstream")
+
+    @property
+    def dsn(self) -> str:
+        return (
+            f"host={self.host} port={self.port} "
+            f"user={self.user} password={self.password} dbname={self.dbname}"
+        )
