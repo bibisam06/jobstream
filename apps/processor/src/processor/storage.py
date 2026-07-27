@@ -5,15 +5,16 @@ from typing import Any
 
 import psycopg2
 from psycopg2.extras import Json
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from common.config import DatabaseSettings
-
 
 
 def get_connection():
     settins = DatabaseSettings()
     return psycopg2.connect(settins.dsn)
-
 
 #회사 저장
 def upsert_company(cur, posting: dict[str, Any]) -> int | None:

@@ -8,11 +8,14 @@ from pathlib import Path
 
 from .sources.common.base import CrawlRequest
 from .sources.saramin.crawler import SaraminCrawler
+from .sources.wanted.crawler import WantedCrawler
+
+CRAWLERS = {"saramin": SaraminCrawler, "wanted": WantedCrawler}
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Collect job postings with Playwright.")
-    parser.add_argument("--source", choices=["saramin"], default="saramin")
+    parser.add_argument("--source", choices=list(CRAWLERS), default="saramin")
     parser.add_argument("--keyword", required=True)
     parser.add_argument("--pages", type=int, default=1)
     parser.add_argument("--headful", action="store_true", help="Run browser with UI for debugging.")
@@ -21,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 async def run(args: argparse.Namespace) -> int:
-    crawler = SaraminCrawler()
+    crawler = CRAWLERS[args.source]()
     request = CrawlRequest(keyword=args.keyword, pages=args.pages, headless=not args.headful)
     postings = await crawler.crawl(request)
 
