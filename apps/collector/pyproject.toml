@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Playwright based job posting collectors for JobStream"
 requires-python = ">=3.12"
 dependencies = [
+    "aiokafka>=0.14.0",
     "jobstream-common",
     "playwright>=1.54.0",
     "python-dotenv>=1.2.2",

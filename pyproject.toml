@@ -13,8 +13,9 @@ dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["apps/collector", "packages/common"]
+members = ["apps/collector", "apps/processor", "packages/common"]
 
 [tool.uv.sources]
 jobstream-collector = { workspace = true }
+jobstream-processor = { workspace = true }
 jobstream-common = { workspace = true }

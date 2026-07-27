@@ -1,29 +1,24 @@
 # processor/dlq_producer.py
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import UTC, datetime
 
-from aiokafka import AIOKafkaProducer
+from confluent_kafka import Producer
 
 from common.kafka_config import KAFKA_BOOTSTRAP_SERVERS, Topics
 
 
 class DlqProducer:
     def __init__(self, bootstrap_servers: str = KAFKA_BOOTSTRAP_SERVERS):
-        self._bootstrap_servers = bootstrap_servers
-        self._producer: AIOKafkaProducer | None = None
+        self._producer = Producer({"bootstrap.servers": bootstrap_servers})
 
     async def start(self):
-        self._producer = AIOKafkaProducer(
-            bootstrap_servers=self._bootstrap_servers,
-            value_serializer=lambda v: v.encode("utf-8"),
-        )
-        await self._producer.start()
+        pass  # 생성자에서 이미 연결 시작됨
 
     async def stop(self):
-        if self._producer:
-            await self._producer.stop()
+        await asyncio.to_thread(self._producer.flush, 10.0)
 
     async def send(
         self,
@@ -42,7 +37,12 @@ class DlqProducer:
             "failed_at": datetime.now(UTC).isoformat(),
             "retry_count": 0,
         }
-        await self._producer.send_and_wait(
-            topic=Topics.CRAWL_DLQ,
-            value=json.dumps(dlq_message, ensure_ascii=False),
-        )
+
+        def _produce():
+            self._producer.produce(
+                topic=Topics.CRAWL_DLQ,
+                value=json.dumps(dlq_message, ensure_ascii=False).encode("utf-8"),
+            )
+            self._producer.poll(0)
+
+        await asyncio.to_thread(_produce)
