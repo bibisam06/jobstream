@@ -62,7 +62,11 @@ class JobPostingConsumer:
 
             if msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
-                    continue  # 파티션 끝에 도달 — 에러 아님, 정상 상황
+                    continue
+                if msg.error().code() == KafkaError.UNKNOWN_TOPIC_OR_PART:
+                    logger.warning("토픽이 아직 준비되지 않음, 3초 후 재시도...")
+                    await asyncio.sleep(3)
+                    continue
                 raise KafkaException(msg.error())
 
             key = msg.key().decode("utf-8") if msg.key() else None

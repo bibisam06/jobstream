@@ -72,7 +72,8 @@ class JobPostingProducer:
 
 
 async def run_wanted_crawl_and_produce():
-    from crawler.spiders.wanted_spider import WantedCrawler
+    from collector.sources.wanted.crawler import WantedCrawler
+    from collector.sources.common.base import CrawlRequest
 
     producer = JobPostingProducer()
     await producer.start()
@@ -81,7 +82,12 @@ async def run_wanted_crawl_and_produce():
     count = 0
 
     try:
-        async for posting in crawler.run():
+        # crawl()이 브라우저 실행 + 재시도 + dedupe까지 전부 처리해줌
+        postings = await crawler.crawl(
+            CrawlRequest(keyword="", pages=1, headless=True)
+        )
+
+        for posting in postings:
             await producer.send(posting)
             count += 1
             if count % 50 == 0:
@@ -94,3 +100,6 @@ async def run_wanted_crawl_and_produce():
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     asyncio.run(run_wanted_crawl_and_produce())
+
+
+
