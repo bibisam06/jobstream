@@ -10,6 +10,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "jobstream-collector",
     "jobstream-common",
+    "apache-airflow==2.9.3",
 ]
 
 [tool.uv.workspace]
