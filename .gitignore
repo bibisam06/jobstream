@@ -219,7 +219,6 @@ __marimo__/
 
 # data 파일 제외
 data/*
-.idea
 
 # uv / Python
 .venv/
@@ -231,5 +230,8 @@ __pycache__/
 .idea/
 .vscode/
 .python-version
-docs/*
 .DS_Store
+docs/*
+
+jobs.jsonl
+*.jsonl
