@@ -13,7 +13,7 @@ apps/
   ml/          기술 스택 표준화 등 ML 실험 (TODO)
 packages/common/  공유 스키마(JobPosting)·Kafka 설정·로거
 database/schema.sql  companies / job_postings / tech_stacks / job_tech_map
-pipelines/airflow/   수집→적재 스케줄링 DAG (TODO)
+airflow/dags/        수집→적재 스케줄링 DAG (TODO)
 docker-compose.yml   Kafka(KRaft) / Kafka UI / Redis / Postgres(pgvector)
 ```
 

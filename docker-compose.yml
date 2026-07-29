@@ -123,7 +123,16 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DEFAULT_TIMEZONE: Asia/Seoul
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
-      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}   # 크롤러/재학습 DAG 알림용 — .env 에 설정
+
+      # ── 이메일 알림 (Gmail 기준, .env 에 실제 값 설정) ──
+      AIRFLOW__SMTP__SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      AIRFLOW__SMTP__SMTP_PORT: ${SMTP_PORT:-587}
+      AIRFLOW__SMTP__SMTP_STARTTLS: "true"
+      AIRFLOW__SMTP__SMTP_SSL: "false"
+      AIRFLOW__SMTP__SMTP_USER: ${SMTP_USER:-}
+      AIRFLOW__SMTP__SMTP_PASSWORD: ${SMTP_PASSWORD:-}   # Gmail 앱 비밀번호 (일반 로그인 비번 아님)
+      AIRFLOW__SMTP__SMTP_MAIL_FROM: ${SMTP_USER:-}
+      NOTIFY_EMAIL: ${NOTIFY_EMAIL:-}                    # 알림 받을 이메일
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
