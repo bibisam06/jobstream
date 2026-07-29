@@ -2,6 +2,11 @@
 # 실행: docker compose up -d
 # 종료: docker compose down        (데이터 유지)
 #       docker compose down -v     (데이터까지 초기화)
+#
+# Airflow 최초 실행 시:
+#   1) docker compose up airflow-init   (DB 마이그레이션 + admin 계정 생성, 1회만)
+#   2) docker compose up -d             (전체 서비스 기동)
+#   3) http://localhost:8081  (기본 계정 airflow / airflow)
 
 services:
 
@@ -88,7 +93,92 @@ services:
       timeout: 3s
       retries: 5
 
+  # ── Airflow 메타데이터 DB (앱 postgres와 완전히 분리된 별도 인스턴스) ──
+  airflow-postgres:
+    image: postgres:16-alpine
+    container_name: jobstream-airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Airflow 초기화 (DB migrate + admin 계정 생성, 1회성) ───────
+  # 사용법: docker compose up airflow-init  (webserver/scheduler보다 먼저 1번 실행)
+  airflow-init:
+    image: apache/airflow:2.9.3
+    container_name: jobstream-airflow-init
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    environment: &airflow-common-env
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: Asia/Seoul
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}   # 크롤러/재학습 DAG 알림용 — .env 에 설정
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username airflow --password airflow \
+          --firstname bibi --lastname jobstream \
+          --role Admin --email admin@jobstream.local || true
+
+  # ── Airflow Webserver (UI: http://localhost:8081) ──────────────
+  airflow-webserver:
+    image: apache/airflow:2.9.3
+    container_name: jobstream-airflow-webserver
+    restart: unless-stopped
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    environment:
+      <<: *airflow-common-env
+    ports:
+      - "8081:8080"   # 8080은 kafka-ui가 이미 사용 중이라 8081로 배정
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: webserver
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ── Airflow Scheduler (크롤러 DAG / 임베딩 재학습 DAG 실행) ────
+  airflow-scheduler:
+    image: apache/airflow:2.9.3
+    container_name: jobstream-airflow-scheduler
+    restart: unless-stopped
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    environment:
+      <<: *airflow-common-env
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: scheduler
+
 volumes:
   kafka-data:
   redis-data:
   postgres-data:
+  airflow-postgres-data:
