@@ -4,6 +4,8 @@
 --  2. 중복 제거는 (source, source_job_id) 유니크 키로 수집 단계에서 처리
 --  3. 기술 스택은 N:M 매핑 테이블로 분리하여 5주차 표준화 사전의 기반 마련
 
+CREATE EXTENSION IF NOT EXISTS vector;
+
 CREATE TABLE IF NOT EXISTS companies (
     company_id      BIGSERIAL PRIMARY KEY,
     name            TEXT NOT NULL,
@@ -35,6 +37,7 @@ CREATE TABLE IF NOT EXISTS job_postings (
     deadline_at     DATE,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     raw_payload     JSONB NOT NULL DEFAULT '{}'::jsonb,
+    embedding       vector(1024),            -- 벡터 검색 대비 예약 (모델 미정, 잠정 1024차원)
     collected_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (source, source_job_id)
