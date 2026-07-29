@@ -71,35 +71,96 @@ class JobPostingProducer:
             logger.error(f"발행 실패: {key} - {e}")
 
 
+async def _crawl_and_produce(crawler, request, producer: JobPostingProducer) -> int:
+    count = 0
+    # crawl()이 브라우저 실행 + 재시도 + dedupe까지 전부 처리해줌
+    postings = await crawler.crawl(request)
+
+    for posting in postings:
+        await producer.send(posting)
+        count += 1
+        if count % 50 == 0:
+            logger.info(f"{crawler.source_name} {count}건 발행 완료")
+
+    return count
+
+
 async def run_wanted_crawl_and_produce():
     from collector.sources.wanted.crawler import WantedCrawler
     from collector.sources.common.base import CrawlRequest
 
     producer = JobPostingProducer()
     await producer.start()
-
-    crawler = WantedCrawler()
-    count = 0
-
     try:
-        # crawl()이 브라우저 실행 + 재시도 + dedupe까지 전부 처리해줌
-        postings = await crawler.crawl(
-            CrawlRequest(keyword="", pages=1, headless=True)
+        count = await _crawl_and_produce(
+            WantedCrawler(), CrawlRequest(keyword="", pages=1, headless=True), producer
         )
-
-        for posting in postings:
-            await producer.send(posting)
-            count += 1
-            if count % 50 == 0:
-                logger.info(f"{count}건 발행 완료")
     finally:
         await producer.stop()
         logger.info(f"총 {count}건 발행, 크롤링 종료")
 
 
+async def run_saramin_crawl_and_produce(keyword: str, pages: int = 1):
+    from collector.sources.saramin.crawler import SaraminCrawler
+    from collector.sources.common.base import CrawlRequest
+
+    producer = JobPostingProducer()
+    await producer.start()
+    try:
+        count = await _crawl_and_produce(
+            SaraminCrawler(), CrawlRequest(keyword=keyword, pages=pages, headless=True), producer
+        )
+    finally:
+        await producer.stop()
+        logger.info(f"총 {count}건 발행, 크롤링 종료")
+
+
+async def run_all_crawls_and_produce(keyword: str, pages: int = 1):
+    """원티드 + 사람인을 순차 크롤링해 한 번의 Kafka 세션으로 발행. Airflow DAG의 진입점.
+
+    소스 하나가 (IP 차단 등으로) 실패해도 이미 성공한 다른 소스의 발행 결과는 살린다.
+    전체가 실패로 처리되는 건 모든 소스가 다 실패했을 때뿐."""
+    from collector.sources.wanted.crawler import WantedCrawler
+    from collector.sources.saramin.crawler import SaraminCrawler
+    from collector.sources.common.base import CrawlRequest
+
+    targets = [
+        (WantedCrawler(), CrawlRequest(keyword="", pages=1, headless=True)),
+        (SaraminCrawler(), CrawlRequest(keyword=keyword, pages=pages, headless=True)),
+    ]
+
+    producer = JobPostingProducer()
+    await producer.start()
+    total = 0
+    failed_sources: list[str] = []
+    try:
+        for crawler, request in targets:
+            try:
+                total += await _crawl_and_produce(crawler, request, producer)
+            except Exception as exc:
+                logger.error(f"{crawler.source_name} 크롤링 실패, 다른 소스는 계속 진행: {exc}")
+                failed_sources.append(crawler.source_name)
+    finally:
+        await producer.stop()
+        logger.info(f"총 {total}건 발행, 크롤링 종료 (실패한 소스: {failed_sources or '없음'})")
+
+    if len(failed_sources) == len(targets):
+        raise RuntimeError(f"모든 소스 크롤링 실패: {failed_sources}")
+
+
+def _build_parser():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Crawl job postings and publish them to Kafka.")
+    parser.add_argument("--keyword", default="백엔드", help="사람인 검색 키워드 (원티드는 카테고리 기반이라 미사용)")
+    parser.add_argument("--pages", type=int, default=2, help="사람인 크롤링 페이지 수")
+    return parser
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    asyncio.run(run_wanted_crawl_and_produce())
+    args = _build_parser().parse_args()
+    asyncio.run(run_all_crawls_and_produce(keyword=args.keyword, pages=args.pages))
 
 
 

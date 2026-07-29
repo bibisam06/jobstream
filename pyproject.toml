@@ -10,6 +10,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "jobstream-collector",
     "jobstream-common",
+    "apache-airflow==2.9.3",
 ]
 
 [tool.uv.workspace]
@@ -19,3 +20,13 @@ members = ["apps/collector", "apps/processor", "packages/common"]
 jobstream-collector = { workspace = true }
 jobstream-processor = { workspace = true }
 jobstream-common = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
