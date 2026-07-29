@@ -1,0 +1,50 @@
+# JobStream 운영(EC2) 환경 오버라이드
+# 실행: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# docker-compose.yml(로컬 개발용) 위에 얹어서 씁니다. 여기서 하는 일:
+#  - 재부팅/장애 시 자동 재기동 (restart policy)
+#  - 비밀번호 기본값 제거 → .env에 실제 값이 없으면 기동 자체가 실패 (dev 기본값이 운영에 새는 것 방지)
+#
+# 포트 노출 범위는 여기서 다루지 않습니다. docker가 바인딩하는 인터페이스와 무관하게
+# AWS 보안그룹에서 SSH(22)와 Airflow 웹서버(8081)만, 그것도 본인 IP로 한정해서 열면 됩니다.
+# (kafka-ui/kafka/redis/postgres는 보안그룹에서 아예 막아 외부 접근 자체를 차단)
+
+services:
+  kafka:
+    restart: unless-stopped
+
+  kafka-ui:
+    restart: unless-stopped
+
+  redis:
+    restart: unless-stopped
+
+  postgres:
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER 환경변수가 필요합니다}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 환경변수가 필요합니다}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB 환경변수가 필요합니다}
+
+  airflow-postgres:
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD:?AIRFLOW_DB_PASSWORD 환경변수가 필요합니다}
+
+  airflow-init:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 환경변수가 필요합니다}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD:?AIRFLOW_DB_PASSWORD 환경변수가 필요합니다}@airflow-postgres/airflow
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:?AIRFLOW_ADMIN_PASSWORD 환경변수가 필요합니다}
+
+  airflow-webserver:
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 환경변수가 필요합니다}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD:?AIRFLOW_DB_PASSWORD 환경변수가 필요합니다}@airflow-postgres/airflow
+
+  airflow-scheduler:
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 환경변수가 필요합니다}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD:?AIRFLOW_DB_PASSWORD 환경변수가 필요합니다}@airflow-postgres/airflow

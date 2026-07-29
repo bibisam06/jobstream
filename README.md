@@ -91,6 +91,19 @@ uv run --package jobstream-processor python -m processor.consumer
    docker compose exec -T postgres psql -U jobstream -d jobstream -c "SELECT count(*) FROM job_postings;"
    ```
 
+## AWS 배포 (예정)
+
+지금은 준비물만 정리해둔 상태고, 실제 배포는 api까지 붙은 뒤 진행할 예정입니다.
+
+- `docker-compose.prod.yml`: 로컬용 `docker-compose.yml` 위에 얹는 오버라이드. 재기동 정책 추가 + 비밀번호 기본값 제거(실수로 dev 기본값이 운영에 새는 것 방지)
+- 배포 시 예상 순서:
+  1. EC2에 Docker / Docker Compose 설치
+  2. 보안그룹에서 SSH(22)·Airflow 웹서버(8081)만 본인 IP로 한정해서 열기 (그 외 포트는 막기)
+  3. 리포 clone 후 `.env`에 실제 값(DB 비밀번호, SMTP 등) 설정
+  4. `docker compose -f docker-compose.yml -f docker-compose.prod.yml up airflow-init` (최초 1회)
+  5. `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`
+  6. `database/schema.sql` 적용
+
 ## 로드맵
 
 - ~~**1주차**: collector(saramin) + 공유 스키마 + DB 스키마~~ ✅
