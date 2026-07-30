@@ -71,7 +71,7 @@ class WantedCrawler(PlaywrightCrawler):
             if(is_duplicate("wanted", posting.url)):
                 logger.warning(f"[원티드] 중복 공고 차단 : {posting.url}")
                 continue
-                
+
             if posting is not None:
                 postings.append(posting)
         return postings
