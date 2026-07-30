@@ -75,6 +75,26 @@ services:
       timeout: 3s
       retries: 5
 
+  # ── Elasticsearch (+nori — 채용 공고 한국어 검색용) ─────────────
+  elasticsearch:
+    build:
+      context: ./infra/docker/elasticsearch
+    image: jobstream-elasticsearch:local
+    container_name: jobstream-elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"   # 로컬 개발용 — 인증 없이 바로 접속
+      ES_JAVA_OPTS: -Xms512m -Xmx512m   # 로컬 노트북 기준 메모리 제한
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
   # ── PostgreSQL (+pgvector — 2개월차 벡터 검색 대비 미리 포함) ──
   postgres:
     image: pgvector/pgvector:pg16
@@ -208,5 +228,6 @@ services:
 volumes:
   kafka-data:
   redis-data:
+  es-data:
   postgres-data:
   airflow-postgres-data:

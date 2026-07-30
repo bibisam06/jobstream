@@ -7,7 +7,7 @@
 #
 # 포트 노출 범위는 여기서 다루지 않습니다. docker가 바인딩하는 인터페이스와 무관하게
 # AWS 보안그룹에서 SSH(22)와 Airflow 웹서버(8081)만, 그것도 본인 IP로 한정해서 열면 됩니다.
-# (kafka-ui/kafka/redis/postgres는 보안그룹에서 아예 막아 외부 접근 자체를 차단)
+# (kafka-ui/kafka/redis/elasticsearch/postgres는 보안그룹에서 아예 막아 외부 접근 자체를 차단)
 
 services:
   kafka:
@@ -17,6 +17,9 @@ services:
     restart: unless-stopped
 
   redis:
+    restart: unless-stopped
+
+  elasticsearch:
     restart: unless-stopped
 
   postgres:
