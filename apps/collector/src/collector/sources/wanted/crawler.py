@@ -3,9 +3,13 @@ from __future__ import annotations
 import re
 from urllib.parse import urlencode, urljoin
 
+import logging
+logger = logging.getLogger(__name__)
+
 from common.schemas import JobPosting
 
 from ..common.base import PlaywrightCrawler
+from ..common.dedup import is_duplicate
 
 
 class WantedCrawler(PlaywrightCrawler):
@@ -63,9 +67,13 @@ class WantedCrawler(PlaywrightCrawler):
 
         for card in cards:
             posting = await self._parse_card(card)
+
+            if(is_duplicate("wanted", posting.url)):
+                logger.warning(f"[원티드] 중복 공고 차단 : {posting.url}")
+                continue
+                
             if posting is not None:
                 postings.append(posting)
-
         return postings
 
     async def _parse_card(self, card) -> JobPosting | None:
